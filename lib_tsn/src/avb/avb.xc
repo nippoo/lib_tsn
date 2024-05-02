@@ -470,7 +470,7 @@ static void update_source_state(unsigned source_num,
 static void get_debug_counters(struct avb_debug_counters &counters)
 {
   memset(&counters, 0, sizeof(struct avb_debug_counters));
-
+#if AVB_NUM_SOURCES > 0
   for (int i = 0; i < max_talker_stream_id; i++) {
     struct talker_counters tc;
     unsafe {
@@ -482,7 +482,9 @@ static void get_debug_counters(struct avb_debug_counters &counters)
     }
     counters.sent_1722 += tc.sent_1722;
   }
+#endif
 
+#if AVB_NUM_SINKS > 0
   for (int i = 0; i < max_listener_stream_id; i++) {
     struct listener_counters lc;
     unsafe {
@@ -495,6 +497,7 @@ static void get_debug_counters(struct avb_debug_counters &counters)
     counters.received_1722 += lc.received_1722;
   }
 }
+#endif
 
 // Wrappers for interface calls from C
 int avb_get_source_state(client interface avb_interface avb, unsigned source_num, enum avb_source_state_t &state) {

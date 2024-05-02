@@ -245,8 +245,10 @@ static int create_aem_read_descriptor_response(unsigned int read_type,
         generate_object_name((char *)cluster->object_name, id, 0);
       }
       else {
+#if AVB_NUM_SOURCES > 0
         strcpy((char *)cluster->object_name, "Output ");
         generate_object_name((char *)cluster->object_name, id, AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES);
+#endif
       }
     }
     else if (read_type == AEM_STREAM_INPUT_TYPE)
@@ -259,11 +261,12 @@ static int create_aem_read_descriptor_response(unsigned int read_type,
       generate_object_name((char *)cluster->object_name, (int)id_num, 0);
 #endif
     }
-
     if (read_type == AEM_STREAM_PORT_OUTPUT_TYPE) {
+#if AVB_NUM_SOURCES > 0
       aem_desc_stream_port_input_output_t *stream_port = (aem_desc_stream_port_input_output_t *)descriptor;
       hton_16(stream_port->base_cluster, AVB_NUM_MEDIA_OUTPUTS + (read_id * AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES));
       hton_16(stream_port->base_map, AVB_NUM_SINKS + read_id);
+#endif
     }
 #if (AVB_NUM_SINKS > 0)
     else if (read_type == AEM_STREAM_PORT_INPUT_TYPE) {
