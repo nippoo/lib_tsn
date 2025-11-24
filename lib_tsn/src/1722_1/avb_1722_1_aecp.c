@@ -265,7 +265,7 @@ static int create_aem_read_descriptor_response(unsigned int read_type,
 #if AVB_NUM_SOURCES > 0
       aem_desc_stream_port_input_output_t *stream_port = (aem_desc_stream_port_input_output_t *)descriptor;
       hton_16(stream_port->base_cluster, AVB_NUM_MEDIA_OUTPUTS + (read_id * AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES));
-      hton_16(stream_port->base_map, AVB_NUM_SINKS + read_id);
+      hton_16(stream_port->base_map, (AVB_NUM_SINKS != 0) + read_id);
 #endif
     }
 #if (AVB_NUM_SINKS > 0)
@@ -280,14 +280,14 @@ static int create_aem_read_descriptor_response(unsigned int read_type,
   }
   else if (read_type == AEM_AUDIO_MAP_TYPE)
   {
-    if (read_id < (AVB_NUM_SINKS+AVB_NUM_SOURCES))
+    if (read_id < ((AVB_NUM_SINKS != 0) + (AVB_NUM_SINKS != 0)))
     {
 #if (AVB_NUM_SINKS > 0 && AVB_NUM_SOURCES > 0)
-      const int num_mappings = (read_id < AVB_NUM_SINKS) ? AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS : AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES;
+      const int num_mappings = (read_id < 1) ? AVB_NUM_MEDIA_OUTPUTS : AVB_NUM_MEDIA_INPUTS;
 #elif (AVB_NUM_SOURCES > 0)
-      const int num_mappings = (read_id < AVB_NUM_SOURCES) ? AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES : 0;
+      const int num_mappings = (read_id < 1) ? AVB_NUM_MEDIA_INPUTS : 0;
 #else
-      const int num_mappings = (read_id < AVB_NUM_SINKS) ? AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS : 0;
+      const int num_mappings = (read_id < 1) ? AVB_NUM_MEDIA_OUTPUTS : 0;
 #endif
 
       /* Since the map descriptors aren't constant size, unlike the clusters, and
@@ -318,6 +318,24 @@ static int create_aem_read_descriptor_response(unsigned int read_type,
         hton_16(audio_map->mappings[i].mapping_cluster_offset, i);
         hton_16(audio_map->mappings[i].mapping_cluster_channel, 0); // Single channel audio clusters
       }
+
+      debug_printf("AEM_AUDIO_MAP_TYPE: read_id=%d, num_mappings=%d\n",
+             read_id, num_mappings);
+
+for (int i = 0; i < num_mappings; i++) {
+    uint16_t stream_index        = ntoh_16(audio_map->mappings[i].mapping_stream_index);
+    uint16_t stream_channel      = ntoh_16(audio_map->mappings[i].mapping_stream_channel);
+    uint16_t cluster_offset      = ntoh_16(audio_map->mappings[i].mapping_cluster_offset);
+    uint16_t cluster_channel     = ntoh_16(audio_map->mappings[i].mapping_cluster_channel);
+
+    debug_printf("  mapping[%02d]: stream_idx=%u, stream_ch=%u, "
+                 "cluster_off=%u, cluster_ch=%u\n",
+                 i,
+                 stream_index,
+                 stream_channel,
+                 cluster_offset,
+                 cluster_channel);
+}
 
       found_descriptor = 2; // 2 signifies do not copy descriptor below
     }
@@ -370,6 +388,27 @@ static int create_aem_read_descriptor_response(unsigned int read_type,
     avb_1722_1_aecp_aem_msg_t *aem = (avb_1722_1_aecp_aem_msg_t*)avb_1722_1_create_aecp_response_header(src_addr, AECP_AEM_STATUS_NO_SUCH_DESCRIPTOR, AECP_CMD_AEM_COMMAND, 40, pkt);
 
     memcpy(aem, pkt->data.payload, 20+sizeof(avb_1722_1_aem_read_descriptor_command_t));
+
+    //
+    // ---- DEBUG: Dump generated descriptor ----
+    //
+    {
+      uint8_t *dptr = (uint8_t *)&aem->command.read_descriptor_resp.descriptor;
+
+      debug_printf("\n[AEM] Descriptor generated:\n");
+      debug_printf("  Type: 0x%04x   Index: %u   Size: %d bytes\n",
+                   read_type, read_id, desc_size_bytes);
+
+      // Print as hex, 16 bytes per line
+      for (int bi = 0; bi < desc_size_bytes; bi += 16) {
+        debug_printf("  %04x: ", bi);
+        for (int bj = 0; bj < 16 && (bi + bj) < desc_size_bytes; bj++) {
+          debug_printf("%02x ", dptr[bi + bj]);
+        }
+        debug_printf("\n");
+      }
+      debug_printf("[AEM] End of descriptor.\n\n");
+    }
 
     return packet_size;
   }
