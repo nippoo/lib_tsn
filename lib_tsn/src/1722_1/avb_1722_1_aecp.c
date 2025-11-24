@@ -271,8 +271,8 @@ static int create_aem_read_descriptor_response(unsigned int read_type,
 #if (AVB_NUM_SINKS > 0)
     else if (read_type == AEM_STREAM_PORT_INPUT_TYPE) {
       aem_desc_stream_port_input_output_t *stream_port = (aem_desc_stream_port_input_output_t *)descriptor;
-      hton_16(stream_port->base_cluster, read_id * AVB_NUM_MEDIA_OUTPUTS);
-      hton_16(stream_port->base_map, read_id);
+      hton_16(stream_port->base_cluster, 0);
+      hton_16(stream_port->base_map, 0);
     }
 #endif
 
@@ -283,12 +283,14 @@ static int create_aem_read_descriptor_response(unsigned int read_type,
     if (read_id < ((AVB_NUM_SINKS != 0) + (AVB_NUM_SINKS != 0)))
     {
 #if (AVB_NUM_SINKS > 0 && AVB_NUM_SOURCES > 0)
-      const int num_mappings = (read_id < 1) ? AVB_NUM_MEDIA_OUTPUTS : AVB_NUM_MEDIA_INPUTS;
+      const int is_sink_map = (read_id == 0);
 #elif (AVB_NUM_SOURCES > 0)
-      const int num_mappings = (read_id < 1) ? AVB_NUM_MEDIA_INPUTS : 0;
+      const int is_sink_map = 0;
 #else
-      const int num_mappings = (read_id < 1) ? AVB_NUM_MEDIA_OUTPUTS : 0;
+      const int is_sink_map = 1;
 #endif
+
+      const int num_mappings = is_sink_map ? AVB_NUM_MEDIA_OUTPUTS : AVB_NUM_MEDIA_INPUTS;
 
       /* Since the map descriptors aren't constant size, unlike the clusters, and
        * dependent on the number of channels, we don't use a template */
@@ -309,11 +311,12 @@ static int create_aem_read_descriptor_response(unsigned int read_type,
 
       for (int i=0; i < num_mappings; i++)
       {
-                hton_16(audio_map->mappings[i].mapping_stream_index, i / AVB_NUM_CHANNELS_PER_SOURCE);
-                hton_16(audio_map->mappings[i].mapping_stream_channel, i % AVB_NUM_CHANNELS_PER_SOURCE);
-                hton_16(audio_map->mappings[i].mapping_cluster_offset, i);
-                hton_16(audio_map->mappings[i].mapping_cluster_channel, 0); // single channel
+          hton_16(audio_map->mappings[i].mapping_stream_index, i / (is_sink_map ? AVB_NUM_CHANNELS_PER_SINK : AVB_NUM_CHANNELS_PER_SOURCE));
+          hton_16(audio_map->mappings[i].mapping_stream_channel, i % (is_sink_map ? AVB_NUM_CHANNELS_PER_SINK : AVB_NUM_CHANNELS_PER_SOURCE));
+          hton_16(audio_map->mappings[i].mapping_cluster_offset, i);
+          hton_16(audio_map->mappings[i].mapping_cluster_channel, 0); // single channel
       }
+
 
       found_descriptor = 2; // 2 signifies do not copy descriptor below
     }
