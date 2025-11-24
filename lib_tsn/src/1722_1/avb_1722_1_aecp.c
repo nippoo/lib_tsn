@@ -315,24 +315,6 @@ static int create_aem_read_descriptor_response(unsigned int read_type,
                 hton_16(audio_map->mappings[i].mapping_cluster_channel, 0); // single channel
       }
 
-      debug_printf("AEM_AUDIO_MAP_TYPE: read_id=%d, num_mappings=%d\n",
-             read_id, num_mappings);
-
-for (int i = 0; i < num_mappings; i++) {
-    uint16_t stream_index        = ntoh_16(audio_map->mappings[i].mapping_stream_index);
-    uint16_t stream_channel      = ntoh_16(audio_map->mappings[i].mapping_stream_channel);
-    uint16_t cluster_offset      = ntoh_16(audio_map->mappings[i].mapping_cluster_offset);
-    uint16_t cluster_channel     = ntoh_16(audio_map->mappings[i].mapping_cluster_channel);
-
-    debug_printf("  mapping[%02d]: stream_idx=%u, stream_ch=%u, "
-                 "cluster_off=%u, cluster_ch=%u\n",
-                 i,
-                 stream_index,
-                 stream_channel,
-                 cluster_offset,
-                 cluster_channel);
-}
-
       found_descriptor = 2; // 2 signifies do not copy descriptor below
     }
   }
