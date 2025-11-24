@@ -264,14 +264,14 @@ static int create_aem_read_descriptor_response(unsigned int read_type,
     if (read_type == AEM_STREAM_PORT_OUTPUT_TYPE) {
 #if AVB_NUM_SOURCES > 0
       aem_desc_stream_port_input_output_t *stream_port = (aem_desc_stream_port_input_output_t *)descriptor;
-      hton_16(stream_port->base_cluster, AVB_NUM_MEDIA_OUTPUTS + (read_id * AVB_NUM_MEDIA_INPUTS/AVB_NUM_SOURCES));
+      hton_16(stream_port->base_cluster, AVB_NUM_MEDIA_OUTPUTS + (read_id * AVB_NUM_MEDIA_INPUTS));
       hton_16(stream_port->base_map, (AVB_NUM_SINKS != 0) + read_id);
 #endif
     }
 #if (AVB_NUM_SINKS > 0)
     else if (read_type == AEM_STREAM_PORT_INPUT_TYPE) {
       aem_desc_stream_port_input_output_t *stream_port = (aem_desc_stream_port_input_output_t *)descriptor;
-      hton_16(stream_port->base_cluster, read_id * AVB_NUM_MEDIA_OUTPUTS/AVB_NUM_SINKS);
+      hton_16(stream_port->base_cluster, read_id * AVB_NUM_MEDIA_OUTPUTS);
       hton_16(stream_port->base_map, read_id);
     }
 #endif
@@ -309,14 +309,10 @@ static int create_aem_read_descriptor_response(unsigned int read_type,
 
       for (int i=0; i < num_mappings; i++)
       {
-#if (AVB_NUM_SINKS > 0)
-        hton_16(audio_map->mappings[i].mapping_stream_index, read_id % AVB_NUM_SINKS);
-#else
-        hton_16(audio_map->mappings[i].mapping_stream_index, read_id);
-#endif
-        hton_16(audio_map->mappings[i].mapping_stream_channel, i);
-        hton_16(audio_map->mappings[i].mapping_cluster_offset, i);
-        hton_16(audio_map->mappings[i].mapping_cluster_channel, 0); // Single channel audio clusters
+                hton_16(audio_map->mappings[i].mapping_stream_index, i / AVB_NUM_CHANNELS_PER_SOURCE);
+                hton_16(audio_map->mappings[i].mapping_stream_channel, i % AVB_NUM_CHANNELS_PER_SOURCE);
+                hton_16(audio_map->mappings[i].mapping_cluster_offset, i);
+                hton_16(audio_map->mappings[i].mapping_cluster_channel, 0); // single channel
       }
 
       debug_printf("AEM_AUDIO_MAP_TYPE: read_id=%d, num_mappings=%d\n",
